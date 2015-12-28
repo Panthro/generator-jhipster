@@ -165,10 +165,13 @@ Generator.prototype.addBowerOverride = function(bowerPackageName, main, isIgnore
             if (dependencies) {
                 override['dependencies'] = dependencies;
             }
+            if (jsonObj.overrides === undefined) {
+              jsonObj.overrides = {};
+            }
             jsonObj.overrides[bowerPackageName] = override;
         });
     } catch (e) {
-        console.log(chalk.yellow('\nUnable to find ') + fullPath + chalk.yellow('. Reference to ') + 'bower override configuration (bowerPackageName: ' + name + ', main:' + JSON.stringify(main) + ', ignore:' + isIgnored + ')' + chalk.yellow(' not added.\n'));
+        console.log(chalk.yellow('\nUnable to find ') + fullPath + chalk.yellow('. Reference to ') + 'bower override configuration (bowerPackageName: ' + bowerPackageName + ', main:' + JSON.stringify(main) + ', ignore:' + isIgnored + ')' + chalk.yellow(' not added.\n'));
     }
 };
 
@@ -274,6 +277,57 @@ Generator.prototype.addChangelogToLiquibase = function (changelogName) {
         });
     } catch (e) {
         console.log(chalk.yellow('\nUnable to find ') + fullPath + chalk.yellow('. Reference to ') + changelogName + '.js ' + chalk.yellow('not added.\n'));
+    }
+};
+
+/**
+ * Add a new social connection factory in the SocialConfiguration.java file.
+ *
+ * @param {string} javaDir - default java directory of the project (JHipster var)
+ * @param {string} importPackagePath - package path of the ConnectionFactory class
+ * @param {string} socialName - name of the social module
+ * @param {string} connectionFactoryClassName - name of the ConnectionFactory class
+ * @param {string} configurationName - name of the section in the config yaml file
+ */
+Generator.prototype.addSocialConnectionFactory = function (javaDir, importPackagePath, socialName, connectionFactoryClassName, configurationName) {
+    var fullPath = javaDir + 'config/social/SocialConfiguration.java';
+    try {
+        console.log(chalk.yellow('\nupdate ') + fullPath);
+        var javaImport = 'import ' + importPackagePath +';\n';
+        jhipsterUtils.rewriteFile({
+            file: fullPath,
+            needle: 'jhipster-needle-add-social-connection-factory-import-package',
+            splicable: [
+                javaImport
+            ]
+        });
+
+        var clientId = socialName + 'ClientId';
+        var clientSecret = socialName + 'ClientSecret';
+        var javaCode = '// ' + socialName + ' configuration\n' +
+            '        String ' + clientId + ' = environment.getProperty("spring.social.' + configurationName + '.clientId");\n' +
+            '        String ' + clientSecret + ' = environment.getProperty("spring.social.' + configurationName + '.clientSecret");\n' +
+            '        if (' + clientId + ' != null && ' + clientSecret + ' != null) {\n' +
+            '            log.debug("Configuring ' + connectionFactoryClassName + '");\n' +
+            '            connectionFactoryConfigurer.addConnectionFactory(\n' +
+            '                new ' + connectionFactoryClassName + '(\n' +
+            '                    ' + clientId + ',\n' +
+            '                    ' + clientSecret + '\n' +
+            '                )\n' +
+            '            );\n' +
+            '        } else {\n' +
+            '            log.error("Cannot configure ' + connectionFactoryClassName + ' id or secret null");\n' +
+            '        }\n';
+
+        jhipsterUtils.rewriteFile({
+            file: fullPath,
+            needle: 'jhipster-needle-add-social-connection-factory',
+            splicable: [
+                javaCode
+            ]
+        });
+    } catch (e) {
+        console.log(chalk.yellow('\nUnable to find ') + fullPath + chalk.yellow('. Social connection ') + e + ' ' + chalk.yellow('not added.\n'));
     }
 };
 
